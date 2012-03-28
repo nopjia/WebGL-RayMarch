@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>WebGL</title>
+  
+  <meta name="description" content="WebGL Global Illumination Renderer">
+  <meta name="author" content="Nop Jiarathanakul">
+  <meta name="keywords" content="">
+
+  <link rel="stylesheet" href="css/reset.css" type="text/css">
+  <link rel="stylesheet" href="css/index.css" type="text/css">
+
+  <script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/Three.js"></script>
+  <script type="text/javascript" src="js/Stats.js"></script>
+  <script type="text/javascript" src="js/index.js"></script>
+  
+  <!-- SHADERS -->
+  <script type="x-shader/x-vertex" id="shader-vs">
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+    
+    varying vec2 vUv;
+    
+    void main()
+    {
+      vUv = uv;
+      gl_Position = projectionMatrix *
+                    modelViewMatrix *
+                    vec4(position,1.0);
+    } 
+  </script>
+  
+  <script type="x-shader/x-fragment" id="shader-fs"></script>
+
+</head>
+
+<body>
+  <div id="webgl-container">
+    <p id="top-message">Loading shader...</p>
+  </div>
+</body>
+</html>
