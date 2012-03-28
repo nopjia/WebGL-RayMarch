@@ -10,7 +10,7 @@ precision highp float;
 #define ROOTTHREE 0.57735027
 #define HUGE_VAL  10000000000.0
 
-#define MAX_STEPS 128
+#define MAX_STEPS 64
 
 
 /* SHADER VARS */
@@ -190,6 +190,9 @@ void main(void) {
   vec3 ro = uCamPos+C + (2.0*vUv.x-1.0)*ROOTTHREE*A + (2.0*vUv.y-1.0)*ROOTTHREE*B;
   vec3 rd = normalize(ro-uCamPos);
   
+  
+  /* RENDERING */
+  
   //int steps = intersectSteps(ro, rd);  
   //gl_FragColor = vec4(vec3(float(MAX_STEPS-steps)/float(MAX_STEPS)), 1.0);
   
@@ -197,7 +200,7 @@ void main(void) {
   
   if (t>0.0) {
     vec3 pos = ro + rd*t;
-    vec3 col = calcDiffuse(pos, vec3(0.6, 0.5, 0.2));
+    vec3 col = calcDiffuse(pos, vec3(0.9, 0.7, 0.5));
     
     vec3 fogCol = vec3(0.4, 0.6, 0.8);
     float fogAmount = 1.0-exp(-0.02*t);
