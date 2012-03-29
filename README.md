@@ -1,6 +1,6 @@
 Ray Marching Distance Fields in WebGL
 =====================================
-A real-time WebGL renderer for distance fields. Rendering through ray marching with adaptive steps size.
+A real-time WebGL renderer for distance fields. Rendering through ray marching with adaptive step size.
 
 View this project live at [http://www.iamnop.com/raymarch/](http://www.iamnop.com/raymarch/).
 
