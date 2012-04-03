@@ -90,34 +90,37 @@ vec4 map( in vec3 p ) {
   return res;
 }
 
-float calcDist(in vec3 p) {
+float getDist(in vec3 p) {
   // wrapping xz plane
-  p.x = mod(p.x,4.0)-2.0;
-  p.z = mod(p.z,4.0)-2.0;
+  //p.x = mod(p.x,4.0)-2.0;
+  //p.z = mod(p.z,4.0)-2.0;
   
   float d0, d1;
+  //d0 = sdSphere(p, 1.0);
   d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d0 = sdBox(p,vec3(1.0));
-  d1 = sdPlane(p+vec3(0.0,2.0,0.0), vec4(0.0,1.0,0.0,0.0));
+  d1 = sdPlane(p+vec3(0.0,1.0,0.0), vec4(0.0,1.0,0.0,0.0));
   d0 = d1 < d0 ? d1 : d0;
   
-  //d0 = sdBox(p,vec3(1.0));  
-  //vec3 testOffset = vec3(3.0, 0.0, 0.0);
+  //vec3 testOffset = vec3(3.0, 0.0, 0.0);  
+  //d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d1 = sdBox(p+testOffset, vec3(1.0));
-  //d0 = ( d0 > d1 ) ? d1 : d0;
-  //d1 = sdBox(p-testOffset, vec3(1.0));
-  //d0 = ( d0 > d1 ) ? d1 : d0;
+  //d0 = d1 < d0 ? d1 : d0;
+  //d1 = sdSphere(p-testOffset, 1.0);
+  //d0 = d1 < d0 ? d1 : d0;
+  //d1 = sdPlane(p+vec3(0.0,1.0,0.0), vec4(0.0,1.0,0.0,0.0));
+  //d0 = d1 < d0 ? d1 : d0;
   
   return d0;
 }
 
 // credit: inigo quilez
-vec3 calcNormal(in vec3 pos) {
+vec3 getNormal(in vec3 pos) {
   vec3  eps = vec3(EPS, 0.0, 0.0);
   vec3 nor;
-  nor.x = calcDist(pos+eps.xyy) - calcDist(pos-eps.xyy);
-  nor.y = calcDist(pos+eps.yxy) - calcDist(pos-eps.yxy);
-  nor.z = calcDist(pos+eps.yyx) - calcDist(pos-eps.yyx);
+  nor.x = getDist(pos+eps.xyy) - getDist(pos-eps.xyy);
+  nor.y = getDist(pos+eps.yxy) - getDist(pos-eps.yxy);
+  nor.z = getDist(pos+eps.yyx) - getDist(pos-eps.yyx);
   return normalize(nor);
 }
 
@@ -144,7 +147,7 @@ int intersectSteps(in vec3 ro, in vec3 rd) {
   
   for(int i=0; i<MAX_STEPS; ++i)
   {
-    float dt = calcDist(ro + rd*t);
+    float dt = getDist(ro + rd*t);
     if(dt >= EPS)
       steps++;    // no intersect case
     else
@@ -158,7 +161,7 @@ float intersectDist(in vec3 ro, in vec3 rd) {
   
   for(int i=0; i<MAX_STEPS; ++i)
   {
-    float dt = calcDist(ro + rd*t);
+    float dt = getDist(ro + rd*t);
     if(dt >= EPS)
       ;       // no intersect case
     else
@@ -170,13 +173,28 @@ float intersectDist(in vec3 ro, in vec3 rd) {
 }
 
 #define LIGHT_I 1.0
-#define KA 0.4
-#define KD 0.6
-vec3 calcDiffuse (in vec3 pos, in vec3 col) {
-  vec3 nor = calcNormal(pos);
-  vec3 lightv = normalize(uLightP-pos);
-  
+#define KA      0.4
+#define KD      0.6
+vec3 getDifuse (in vec3 pos, in vec3 nor, in vec3 col) {
+  vec3 lightv = normalize(uLightP-pos);  
   return col*(KA + KD*LIGHT_I*dot(lightv,nor));
+}
+
+#define AO_K      1.5
+#define AO_DELTA  0.15
+#define AO_N      5
+float getAO (in vec3 pos, in vec3 nor) {
+  float sum = 0.0;
+  float weight = 0.5;
+  float delta = AO_DELTA;
+  
+  for (int i=1; i<=AO_N; ++i) {
+    sum += weight * (delta - getDist(pos+nor*delta));
+    
+    delta += AO_DELTA;
+    weight *= 0.5;
+  }
+  return 1.0 - AO_K*sum;
 }
 
 void main(void) {
@@ -199,13 +217,20 @@ void main(void) {
   float t = intersectDist(ro, rd);
   
   if (t>0.0) {
-    vec3 pos = ro + rd*t;
-    vec3 col = calcDiffuse(pos, vec3(0.9, 0.7, 0.5));
+    vec3 pos = ro + rd*t;    
+    vec3 nor = getNormal(pos);
     
-    vec3 fogCol = vec3(0.4, 0.6, 0.8);
-    float fogAmount = 1.0-exp(-0.02*t);
+    vec3 col = getDifuse(pos, nor, vec3(0.9, 0.7, 0.5));
     
-    gl_FragColor = vec4(mix(col,fogCol,fogAmount), 1.0);
+    // Ambient Occlusion
+    float ao = getAO(pos, nor);
+    col *= ao;
+    
+    // Add Fog
+    //float fogAmount = 1.0-exp(-0.02*t);
+    //col = mix(col, vec3(0.4, 0.6, 0.8), fogAmount);
+    
+    gl_FragColor = vec4(col, 1.0);
   }
   else {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -221,7 +246,7 @@ void main(void) {
   if( tmat.x>0.0 )
   {
     vec3 pos = ro + tmat.x*rd;
-    vec3 nor = calcNormal(pos);
+    vec3 nor = getNormal(pos);
 
     float dif1 = max(0.4 + 0.6*dot(nor,light),0.0);
     float dif2 = max(0.4 + 0.6*dot(nor,vec3(-light.x,light.y,-light.z)),0.0);
