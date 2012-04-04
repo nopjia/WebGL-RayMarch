@@ -85,7 +85,7 @@ function initKeyboardEvents() {
 ////////////////////////////////////////////////////////////////////////////////
 
 function initScene() {
-  gLightP = new THREE.Vector3(0.0, 5.0, 0.0);
+  gLightP = new THREE.Vector3(1.0, 5.0, 3.0);
 }
 
 /* INIT GL */

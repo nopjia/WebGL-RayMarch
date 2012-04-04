@@ -197,6 +197,26 @@ float getAO (in vec3 pos, in vec3 nor) {
   return 1.0 - AO_K*sum;
 }
 
+#define SS_K      0.7
+#define SS_DELTA  0.15
+#define SS_BLEND  0.8
+#define SS_N      6
+float getSoftShadows (in vec3 pos) {
+  vec3 lightv = normalize(uLightP-pos);
+  
+  float sum = 0.0;
+  float blend = SS_BLEND;
+  float delta = SS_DELTA;
+  
+  for (int i=1; i<=SS_N; ++i) {
+    sum += blend * (delta - getDist(pos+lightv*delta));
+    
+    delta += SS_DELTA;
+    blend *= SS_BLEND;
+  }
+  return 1.0 - SS_K*sum;
+}
+
 void main(void) {
   
   /* CAMERA RAY */
@@ -221,10 +241,15 @@ void main(void) {
     vec3 nor = getNormal(pos);
     
     vec3 col = getDifuse(pos, nor, vec3(0.9, 0.7, 0.5));
+    //vec3 col = vec3(1.0);
     
     // Ambient Occlusion
-    float ao = getAO(pos, nor);
-    col *= ao;
+    //float ao = getAO(pos, nor);
+    //col *= ao;
+    
+    // Soft Shadows
+    float ss = getSoftShadows(pos);
+    col *= ss;
     
     // Add Fog
     //float fogAmount = 1.0-exp(-0.02*t);
@@ -235,7 +260,6 @@ void main(void) {
   else {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   }
-  
   
   /*
   // light
