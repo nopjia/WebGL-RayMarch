@@ -188,13 +188,30 @@ float getAO (in vec3 pos, in vec3 nor) {
   float weight = 0.5;
   float delta = AO_DELTA;
   
-  for (int i=1; i<=AO_N; ++i) {
+  for (int i=0; i<AO_N; ++i) {
     sum += weight * (delta - getDist(pos+nor*delta));
     
     delta += AO_DELTA;
     weight *= 0.5;
   }
   return 1.0 - AO_K*sum;
+}
+
+#define SSS_K      1.5
+#define SSS_DELTA  0.5
+#define SSS_N      5
+float getSSS (in vec3 pos, in vec3 look) {
+  float sum = 0.0;
+  float weight = -0.5;
+  float delta = SSS_DELTA;
+  
+  for (int i=0; i<SSS_N; ++i) {
+    sum += weight * min(0.0, getDist(pos+look*delta));
+    
+    delta += SSS_DELTA;
+    weight *= 0.5;
+  }
+  return SSS_K*sum;
 }
 
 #define SS_K      0.7
@@ -208,7 +225,7 @@ float getSoftShadows (in vec3 pos) {
   float blend = SS_BLEND;
   float delta = SS_DELTA;
   
-  for (int i=1; i<=SS_N; ++i) {
+  for (int i=0; i<SS_N; ++i) {
     sum += blend * (delta - getDist(pos+lightv*delta));
     
     delta += SS_DELTA;
@@ -246,6 +263,11 @@ void main(void) {
     // Ambient Occlusion
     //float ao = getAO(pos, nor);
     //col *= ao;
+    
+    /// Subsurface Scattering
+    //float sss = getSSS(pos, rd);
+    //vec3 sssCol = vec3(0.0, 0.2, 0.5);
+    //col *= mix(col, sssCol, sss);
     
     // Soft Shadows
     float ss = getSoftShadows(pos);
