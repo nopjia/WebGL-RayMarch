@@ -23,11 +23,18 @@ uniform float uAspect;
 uniform vec3 uLightP;
 
 /* GENERAL FUNCS */
-// credit: inigo quilez
+// source: inigo quilez
 float maxcomp(in vec3 p ) { return max(p.x,max(p.y,p.z));}
 
 /* DISTANCE FUNCS */
-// http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+// source: http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+
+/* PRIMITIVES */
+float sdPlane( vec3 p, vec4 n )
+{
+  // n must be normalized
+  return dot(p,n.xyz) + n.w;
+}
 float sdSphere( vec3 p, float s )
 {
   return length(p)-s;
@@ -45,16 +52,38 @@ float udRoundBox( vec3 p, vec3 b, float r )
 {
   return length(max(abs(p)-b,0.0))-r;
 }
+float sdCylinder( vec3 p, vec3 c )
+{
+  return length(p.xz-c.xy)-c.z;
+}
 float sdTorus( vec3 p, vec2 t )
 {
   vec2 q = vec2(length(p.xz)-t.x,p.y);
   return length(q)-t.y;
 }
-float sdPlane( vec3 p, vec4 n )
-{
-  // n must be normalized
-  return dot(p,n.xyz) + n.w;
+float lengthN(vec2 v, float n) {
+  return pow(pow(v.x,n)+pow(v.y,n), 1.0/n);
 }
+float sdTorusN( vec3 p, vec2 t, float n )
+{
+  vec2 q = vec2(lengthN(p.xz,n)-t.x,p.y);
+  return lengthN(q,n)-t.y;
+}
+
+/* OPERATIONS */
+float opU( float d1, float d2 )
+{
+  return min(d1,d2);
+}
+float opS( float d1, float d2 )
+{
+  return max(-d1,d2);
+}
+float opI( float d1, float d2 )
+{
+  return max(d1,d2);
+}
+
 
 vec4 map( in vec3 p ) {
   float d = sdBox(p,vec3(1.0));
@@ -96,8 +125,13 @@ float getDist(in vec3 p) {
   //p.z = mod(p.z,4.0)-2.0;
   
   float d0, d1;
+  
+  d0 = sdBox(p,vec3(2.0, 2.0, 1.0));
+  d1 = sdSphere(p-vec3(0.0, 1.5, 0.0), 1.5);
+  d0 = opS(d1, d0);
+  
   //d0 = sdSphere(p, 1.0);
-  d0 = udRoundBox(p, vec3(0.75), 0.25);
+  //d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d0 = sdBox(p,vec3(1.0));
   d1 = sdPlane(p+vec3(0.0,1.0,0.0), vec4(0.0,1.0,0.0,0.0));
   d0 = d1 < d0 ? d1 : d0;
@@ -114,9 +148,9 @@ float getDist(in vec3 p) {
   return d0;
 }
 
-// credit: inigo quilez
+// source: inigo quilez
 vec3 getNormal(in vec3 pos) {
-  vec3  eps = vec3(EPS, 0.0, 0.0);
+  vec3 eps = vec3(EPS, 0.0, 0.0);
   vec3 nor;
   nor.x = getDist(pos+eps.xyy) - getDist(pos-eps.xyy);
   nor.y = getDist(pos+eps.yxy) - getDist(pos-eps.yxy);
@@ -194,11 +228,11 @@ float getAO (in vec3 pos, in vec3 nor) {
     delta += AO_DELTA;
     weight *= 0.5;
   }
-  return 1.0 - AO_K*sum;
+  return clamp(1.0 - AO_K*sum, 0.0, 1.0);
 }
 
 #define SSS_K      1.5
-#define SSS_DELTA  0.5
+#define SSS_DELTA  0.3
 #define SSS_N      5
 float getSSS (in vec3 pos, in vec3 look) {
   float sum = 0.0;
@@ -208,10 +242,10 @@ float getSSS (in vec3 pos, in vec3 look) {
   for (int i=0; i<SSS_N; ++i) {
     sum += weight * min(0.0, getDist(pos+look*delta));
     
-    delta += SSS_DELTA;
+    delta += delta;
     weight *= 0.5;
   }
-  return SSS_K*sum;
+  return clamp(SSS_K*sum, 0.0, 1.0);
 }
 
 #define SS_K      0.7
@@ -231,7 +265,7 @@ float getSoftShadows (in vec3 pos) {
     delta += SS_DELTA;
     blend *= SS_BLEND;
   }
-  return 1.0 - SS_K*sum;
+  return clamp(1.0 - SS_K*sum, 0.0, 1.0);
 }
 
 void main(void) {
@@ -254,7 +288,7 @@ void main(void) {
   float t = intersectDist(ro, rd);
   
   if (t>0.0) {
-    vec3 pos = ro + rd*t;    
+    vec3 pos = ro + rd*t;
     vec3 nor = getNormal(pos);
     
     vec3 col = getDifuse(pos, nor, vec3(0.9, 0.7, 0.5));
@@ -265,17 +299,16 @@ void main(void) {
     //col *= ao;
     
     /// Subsurface Scattering
-    //float sss = getSSS(pos, rd);
-    //vec3 sssCol = vec3(0.0, 0.2, 0.5);
-    //col *= mix(col, sssCol, sss);
+    float sss = getSSS(pos, rd);
+    col *= 1.0-sss;
     
     // Soft Shadows
     float ss = getSoftShadows(pos);
     col *= ss;
     
     // Add Fog
-    //float fogAmount = 1.0-exp(-0.02*t);
-    //col = mix(col, vec3(0.4, 0.6, 0.8), fogAmount);
+    float fogAmount = 1.0-exp(-0.02*t);
+    col = mix(col, vec3(0.6, 0.6, 0.7), fogAmount);
     
     gl_FragColor = vec4(col, 1.0);
   }
