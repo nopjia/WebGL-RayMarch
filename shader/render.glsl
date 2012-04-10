@@ -12,17 +12,6 @@ precision highp float;
 
 #define MAX_STEPS 64
 
-
-/* SHADER VARS */
-varying vec2 vUv;
-
-uniform vec3 uCamCenter;
-uniform vec3 uCamPos;
-uniform vec3 uCamUp;
-uniform float uAspect;
-uniform float uTime;
-uniform vec3 uLightP;
-
 /* GENERAL FUNCS */
 // source: inigo quilez
 float maxcomp( in vec3 p ) {
@@ -87,6 +76,28 @@ float opI( float d1, float d2 )
   return max(d1,d2);
 }
 
+////////////////////////////////////////////////////////////
+//  PROGRAM CODE
+////////////////////////////////////////////////////////////
+
+/* SHADER VARS */
+varying vec2 vUv;
+
+uniform vec3 uCamCenter;
+uniform vec3 uCamPos;
+uniform vec3 uCamUp;
+uniform float uAspect;
+uniform float uTime;
+uniform vec3 uLightP;
+
+vec3 currCol;
+float currSSS;
+
+#define FOGCOLOR  vec3(0.6, 0.6, 0.7)
+#define MATERIAL0 vec3(0.5)
+#define MATERIAL1 vec3(0.9, 0.7, 0.5)
+#define MATERIAL2 vec3(0.3, 0.5, 1.0)
+
 float getDist(in vec3 p) {
   // wrapping xz plane
   //p.x = mod(p.x,4.0)-2.0;
@@ -106,12 +117,22 @@ float getDist(in vec3 p) {
   d0 = sdBox(p,vec3(2.0, 2.0, 1.0));
   d1 = sdSphere(p-vec3(0.0, 1.5, 0.0), 1.5);
   d0 = opS(d1, d0);
+  {
+    currCol = MATERIAL2;
+    currSSS = 1.0;
+  }
   
   //d0 = sdSphere(p, 1.0);
   //d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d0 = sdBox(p,vec3(1.0));
   d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
-  d0 = d1 < d0 ? d1 : d0;
+  //d0 = d1 < d0 ? d1 : d0;
+  if (d1<d0) {
+    d0 = d1;
+    currCol = MATERIAL0;
+    currSSS = 0.0;
+  }
+  
   
   //vec3 testOffset = vec3(3.0, 0.0, 0.0);  
   //d0 = udRoundBox(p, vec3(0.75), 0.25);
@@ -228,6 +249,10 @@ float getSoftShadows (in vec3 pos) {
   return clamp(1.0 - SS_K*sum, 0.0, 1.0);
 }
 
+////////////////////////////////////////////////////////////
+//  MAIN
+////////////////////////////////////////////////////////////
+
 void main(void) {
   
   /* CAMERA RAY */
@@ -251,7 +276,7 @@ void main(void) {
     vec3 pos = ro + rd*t;
     vec3 nor = getNormal(pos);
     
-    vec3 col = getDifuse(pos, nor, vec3(0.9, 0.7, 0.5));
+    vec3 col = getDifuse(pos, nor, currCol);
     //vec3 col = vec3(1.0);
     
     // Ambient Occlusion
@@ -259,7 +284,7 @@ void main(void) {
     //col *= ao;
     
     /// Subsurface Scattering
-    float sss = getSSS(pos, rd);
+    float sss = currSSS*getSSS(pos, rd);
     col *= 1.0-sss;
     
     // Soft Shadows
@@ -268,7 +293,7 @@ void main(void) {
     
     // Add Fog
     float fogAmount = 1.0-exp(-0.02*t);
-    col = mix(col, vec3(0.6, 0.6, 0.7), fogAmount);
+    col = mix(col, FOGCOLOR, fogAmount);
     
     gl_FragColor = vec4(col, 1.0);
   }
