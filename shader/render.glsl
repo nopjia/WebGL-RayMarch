@@ -102,20 +102,26 @@ float getDist(in vec3 p) {
   // wrapping xz plane
   //p.x = mod(p.x,4.0)-2.0;
   //p.z = mod(p.z,4.0)-2.0;
-  
+
   float d0, d1;
   
   // rotation matrix
-  mat4 rotate = mat4(
+  mat4 rotateY = mat4(
     cos(uTime),   0.0,  sin(uTime),   0.0, 
     0.0,          1.0,  0.0,          0.0, 
     -sin(uTime),  0.0,  cos(uTime),   0.0,
     0.0,          0.0,  0.0,          1.0
   );
-  p = (rotate*vec4(p, 1.0)).xyz;
+  mat4 rotateX = mat4(
+    1.0, 0.0, 0.0, 0.0, 
+    0.0, cos(uTime), sin(uTime), 0.0, 
+    0.0, -sin(uTime), cos(uTime), 0.0,
+    0.0, 0.0, 0.0, 1.0
+  );
+  vec3 p1 = (rotateY*rotateX*vec4(p, 1.0)).xyz;
   
-  d0 = sdBox(p,vec3(2.0, 2.0, 1.0));
-  d1 = sdSphere(p-vec3(0.0, 1.5, 0.0), 1.5);
+  d0 = sdBox(p1,vec3(2.0, 2.0, 1.0));
+  d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
   d0 = opS(d1, d0);
   {
     currCol = MATERIAL2;
@@ -125,6 +131,7 @@ float getDist(in vec3 p) {
   //d0 = sdSphere(p, 1.0);
   //d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d0 = sdBox(p,vec3(1.0));
+  
   d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
   //d0 = d1 < d0 ? d1 : d0;
   if (d1<d0) {
@@ -132,16 +139,6 @@ float getDist(in vec3 p) {
     currCol = MATERIAL0;
     currSSS = 0.0;
   }
-  
-  
-  //vec3 testOffset = vec3(3.0, 0.0, 0.0);  
-  //d0 = udRoundBox(p, vec3(0.75), 0.25);
-  //d1 = sdBox(p+testOffset, vec3(1.0));
-  //d0 = d1 < d0 ? d1 : d0;
-  //d1 = sdSphere(p-testOffset, 1.0);
-  //d0 = d1 < d0 ? d1 : d0;
-  //d1 = sdPlane(p+vec3(0.0,1.0,0.0), vec4(0.0,1.0,0.0,0.0));
-  //d0 = d1 < d0 ? d1 : d0;
   
   return d0;
 }
