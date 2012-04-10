@@ -11,6 +11,7 @@ var sWidth, sHeight;
 var gRenderer, stats;
 var gCamera, gScene, gControls;
 var gAspect;
+var dt = 0.01;
 
 var lambert1 = new THREE.MeshLambertMaterial({color: 0xCC0000});
 
@@ -134,6 +135,7 @@ function initTHREE() {
     uCamCenter: {type: "v3", value: gControls.target},
     uCamUp:     {type: "v3", value: gCamera2.up},
     uAspect:    {type: "f", value: sWidth/sHeight},
+    uTime:      {type: "f", value: 0.0},
     uLightP:    {type: "v3", value: gLightP}
   };
   
@@ -160,6 +162,8 @@ function update() {
   stats.update();
   gControls.update();
   gRenderer.render(gScene, gCamera);
+  
+  gUniforms.uTime.value += dt;
 
   requestAnimationFrame(update);
 }

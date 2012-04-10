@@ -20,11 +20,14 @@ uniform vec3 uCamCenter;
 uniform vec3 uCamPos;
 uniform vec3 uCamUp;
 uniform float uAspect;
+uniform float uTime;
 uniform vec3 uLightP;
 
 /* GENERAL FUNCS */
 // source: inigo quilez
-float maxcomp(in vec3 p ) { return max(p.x,max(p.y,p.z));}
+float maxcomp( in vec3 p ) {
+  return max(p.x,max(p.y,p.z));
+}
 
 /* DISTANCE FUNCS */
 // source: http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
@@ -84,7 +87,6 @@ float opI( float d1, float d2 )
   return max(d1,d2);
 }
 
-
 vec4 map( in vec3 p ) {
   float d = sdBox(p,vec3(1.0));
   
@@ -126,6 +128,15 @@ float getDist(in vec3 p) {
   
   float d0, d1;
   
+  // rotation matrix
+  mat4 rotate = mat4(
+    cos(uTime),   0.0,  sin(uTime),   0.0, 
+    0.0,          1.0,  0.0,          0.0, 
+    -sin(uTime),  0.0,  cos(uTime),   0.0,
+    0.0,          0.0,  0.0,          1.0
+  );
+  p = (rotate*vec4(p, 1.0)).xyz;
+  
   d0 = sdBox(p,vec3(2.0, 2.0, 1.0));
   d1 = sdSphere(p-vec3(0.0, 1.5, 0.0), 1.5);
   d0 = opS(d1, d0);
@@ -133,7 +144,7 @@ float getDist(in vec3 p) {
   //d0 = sdSphere(p, 1.0);
   //d0 = udRoundBox(p, vec3(0.75), 0.25);
   //d0 = sdBox(p,vec3(1.0));
-  d1 = sdPlane(p+vec3(0.0,1.0,0.0), vec4(0.0,1.0,0.0,0.0));
+  d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
   d0 = d1 < d0 ? d1 : d0;
   
   //vec3 testOffset = vec3(3.0, 0.0, 0.0);  
