@@ -7,6 +7,7 @@ precision highp float;
 #define EPS1      0.01
 #define PI        3.14159265
 #define HALFPI    1.57079633
+#define QUARTPI   0.78539816
 #define ROOTTHREE 0.57735027
 #define HUGE_VAL  10000000000.0
 
@@ -62,6 +63,55 @@ float sdTorusN( vec3 p, vec2 t, float n )
   return lengthN(q,n)-t.y;
 }
 
+#define ITERATIONS 3
+float sdMenger(in vec3 p)
+{
+  float d = sdBox(p,vec3(1.0));
+
+  float s = 1.0;
+  for( int m=0; m<ITERATIONS; m++ )
+  {
+    vec3 a = mod( p*s, 2.0 )-1.0;
+    s *= 3.0;
+    vec3 r = abs(1.0 - 3.0*abs(a));
+  
+    float da = max(r.x,r.y);
+    float db = max(r.y,r.z);
+    float dc = max(r.z,r.x);
+    float c = (min(da,min(db,dc))-1.0)/s;
+  
+    d = max(d,c);
+  }
+  
+  return d;
+}
+#undef ITERATIONS
+
+#define ITERATIONS 3
+#define SCALE 2.0
+float sdTetra(vec3 z)
+{
+  vec3 a1 = vec3(1,1,1);
+  vec3 a2 = vec3(-1,-1,1);
+  vec3 a3 = vec3(1,-1,-1);
+  vec3 a4 = vec3(-1,1,-1);
+  vec3 c;
+  float dist, d;
+  int n = 0;
+  for(int i=0; i<ITERATIONS; i++) {
+    c = a1; dist = length(z-a1);
+    d = length(z-a2); if (d < dist) { c = a2; dist=d; }
+    d = length(z-a3); if (d < dist) { c = a3; dist=d; }
+    d = length(z-a4); if (d < dist) { c = a4; dist=d; }
+    z = SCALE*z-c*(SCALE-1.0);
+    n++;
+  }
+
+  return length(z) * pow(SCALE, float(-n));
+}
+#undef ITERATIONS
+#undef SCALE
+
 /* OPERATIONS */
 float opU( float d1, float d2 )
 {
@@ -100,40 +150,35 @@ float currSSS;
 
 float getDist(in vec3 p) {
   // wrapping xz plane
-  //p.x = mod(p.x,4.0)-2.0;
-  //p.z = mod(p.z,4.0)-2.0;
+  //p.x = mod(p.x,8.0)-4.0;
+  //p.z = mod(p.z,8.0)-4.0;
 
   float d0, d1;
   
   // rotation matrix
-  mat4 rotateY = mat4(
-    cos(uTime),   0.0,  sin(uTime),   0.0, 
-    0.0,          1.0,  0.0,          0.0, 
-    -sin(uTime),  0.0,  cos(uTime),   0.0,
-    0.0,          0.0,  0.0,          1.0
+  mat3 rotateY = mat3(
+    cos(uTime),   0.0,  sin(uTime),
+    0.0,          1.0,  0.0,       
+    -sin(uTime),  0.0,  cos(uTime)
   );
-  mat4 rotateX = mat4(
-    1.0, 0.0, 0.0, 0.0, 
-    0.0, cos(uTime), sin(uTime), 0.0, 
-    0.0, -sin(uTime), cos(uTime), 0.0,
-    0.0, 0.0, 0.0, 1.0
+  mat3 rotateX = mat3(
+    1.0, 0.0, 0.0,
+    0.0, cos(uTime), sin(uTime), 
+    0.0, -sin(uTime), cos(uTime)
   );
-  vec3 p1 = (rotateY*rotateX*vec4(p, 1.0)).xyz;
+  vec3 p1 = rotateY*rotateX*p;
   
-  d0 = sdBox(p1,vec3(2.0, 2.0, 1.0));
-  d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
-  d0 = opS(d1, d0);
+  d0 = sdMenger(p1/2.0)*2.0;
+  
+  //d0 = udBox(p1,vec3(1.0, 2.0, 2.0));
+  //d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
+  //d0 = opS(d1, d0);
   {
     currCol = MATERIAL2;
     currSSS = 1.0;
   }
   
-  //d0 = sdSphere(p, 1.0);
-  //d0 = udRoundBox(p, vec3(0.75), 0.25);
-  //d0 = sdBox(p,vec3(1.0));
-  
   d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
-  //d0 = d1 < d0 ? d1 : d0;
   if (d1<d0) {
     d0 = d1;
     currCol = MATERIAL0;
@@ -266,35 +311,40 @@ void main(void) {
   
   //int steps = intersectSteps(ro, rd);  
   //gl_FragColor = vec4(vec3(float(MAX_STEPS-steps)/float(MAX_STEPS)), 1.0);
-  
+    
   float t = intersectDist(ro, rd);
   
-  if (t>0.0) {
-    vec3 pos = ro + rd*t;
-    vec3 nor = getNormal(pos);
+  
+  // draw distance
+  //#define TEMPDIST 10.0
+  //t = min(t, TEMPDIST);
+  //gl_FragColor = vec4(vec3((TEMPDIST-t)/TEMPDIST), 1.0);
     
-    vec3 col = getDifuse(pos, nor, currCol);
-    //vec3 col = vec3(1.0);
-    
-    // Ambient Occlusion
-    //float ao = getAO(pos, nor);
-    //col *= ao;
-    
-    /// Subsurface Scattering
-    float sss = currSSS*getSSS(pos, rd);
-    col *= 1.0-sss;
-    
-    // Soft Shadows
-    float ss = getSoftShadows(pos);
-    col *= ss;
-    
-    // Add Fog
-    float fogAmount = 1.0-exp(-0.02*t);
-    col = mix(col, FOGCOLOR, fogAmount);
-    
-    gl_FragColor = vec4(col, 1.0);
-  }
-  else {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-  }
+  // render
+  vec3 pos = ro + rd*t;
+  vec3 nor = getNormal(pos);
+  
+  vec3 col = getDifuse(pos, nor, currCol);
+  //vec3 col = vec3(1.0);
+  
+  // Ambient Occlusion
+  //float ao = getAO(pos, nor);
+  //col *= ao;
+  
+  /// Subsurface Scattering
+  float sss = currSSS*getSSS(pos, rd);
+  col *= 1.0-sss;
+  
+  // Soft Shadows
+  float ss = getSoftShadows(pos);
+  col *= ss;
+  
+  // Add Fog
+  float fogAmount = 1.0-exp(-0.02*t);
+  col = mix(col, FOGCOLOR, fogAmount);
+  
+  // convert t to multiplier to avoid branch
+  t = max(sign(t), 0.0);
+  
+  gl_FragColor = vec4(t*col, 1.0);
 }
