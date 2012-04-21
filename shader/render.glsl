@@ -179,33 +179,38 @@ const float c_Bounds = 15.0;
 float gMin = 0.0;
 float gMax = HUGEVAL;
 
+// ray tracing globals
 vec3 currCol = MATERIAL0;
 float currSSS = 1.0;
+bool currHit = false;
+vec3 currPos, currNor;
 
 float getDist(in vec3 p) {
   // wrapping xz plane
-  //p.x = mod(p.x,8.0)-4.0;
-  //p.z = mod(p.z,8.0)-4.0;
+  p.x = mod(p.x,4.0)-2.0;
+  p.z = mod(p.z,4.0)-2.0;
 
   float d0, d1;
   
   // rotation matrix
-  mat3 rotateY = mat3(
-    cos(uTime),   0.0,  sin(uTime),
-    0.0,          1.0,  0.0,       
-    -sin(uTime),  0.0,  cos(uTime)
-  );
-  mat3 rotateX = mat3(
-    1.0, 0.0, 0.0,
-    0.0, cos(uTime), sin(uTime), 
-    0.0, -sin(uTime), cos(uTime)
-  );
-  vec3 p1 = rotateY*rotateX*p;
+  //mat3 rotateY = mat3(
+  //  cos(uTime),   0.0,  sin(uTime),
+  //  0.0,          1.0,  0.0,       
+  //  -sin(uTime),  0.0,  cos(uTime)
+  //);
+  //mat3 rotateX = mat3(
+  //  1.0, 0.0, 0.0,
+  //  0.0, cos(uTime), sin(uTime), 
+  //  0.0, -sin(uTime), cos(uTime)
+  //);
+  //vec3 p1 = rotateY*rotateX*p;
   
   //d0 = sdKnot(p/2.0, uTime)*2.0;
   //d0 = sdQuaternion(p/2.0)*2.0;
   
-  d0 = sdMenger(p1/2.0)*2.0;
+  //d0 = sdMenger(p1/2.0)*2.0;
+  
+  d0 = udRoundBox(p, vec3(1.0), 0.2);
   
   // twisted box
   //float c = cos(QUARTPI*p.y);
@@ -220,20 +225,20 @@ float getDist(in vec3 p) {
   //d0 = opS(d1, d0);
   
   // ground plane
-  //d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
-  //if (d1<d0) {
-  //  d0 = d1;
-  //  currCol = MATERIAL0;
-  //  currSSS = 0.0;
-  //}
-  //else {
-  //  currCol = MATERIAL2;
-  //  currSSS = 1.0;
-  //}
+  d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
+  if (d1<d0) {
+    d0 = d1;
+    currCol = MATERIAL0;
+    currSSS = 0.0;
+  }
+  else {
+    currCol = MATERIAL2;
+    currSSS = 1.0;
+  }
   
   // hack fix error wtf
-  d1 = sdSphere(p, 0.0);
-  d0 = d1 < d0 ? d1 : d0;
+  //d1 = sdSphere(p, 0.0);
+  //d0 = d1 < d0 ? d1 : d0;
   
   return d0;
 }
@@ -379,20 +384,26 @@ float getSoftShadows (in vec3 pos) {
   return clamp(1.0 - SS_K*sum, 0.0, 1.0);
 }
 
+//#define CHECK_BOUNDS
 //#define RENDER_DIST
 //#define RENDER_STEPS
+
 #define DIFFUSE
+#define REFLECTION
 //#define OCCLUSION
 //#define SUBSURFACE
 #define SOFTSHADOWS
 //#define FOG
 
-#define KA      0.1
-#define KD      0.9
+#define KA  0.1
+#define KD  0.9
+#define KR  0.3
 
 vec3 rayMarch (in vec3 ro, in vec3 rd) {
   
+  #ifdef CHECK_BOUNDS
   if (intersectBounds(ro, rd)) {
+  #endif
     
     #ifdef RENDER_STEPS
     int steps = intersectSteps(ro, rd);  
@@ -401,7 +412,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
     
     float t = intersectDist(ro, rd);
     
-    if (t>0.0) {    
+    if (t>0.0) {      
       #ifdef RENDER_DIST
       const float maxDist = 10.0;
       t = min(t, maxDist);
@@ -444,13 +455,37 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       col *= 1.0-fogAmount;
       #endif
       
+      
+      currHit = true;
+      currPos = pos;
+      currNor = nor;
+      
       return col;
       #endif // RENDER_DIST
     }
     #endif // RENDER_STEPS
+    
+    currHit = false;
+  
+  #ifdef CHECK_BOUNDS
   }
+  #endif
   
   return vec3(0.0);
+}
+
+vec3 initRayMarch (in vec3 ro, in vec3 rd) {
+  
+  vec3 col = rayMarch(ro, rd) * (1.0-KR);
+  
+  #ifdef REFLECTION
+  if (currHit) {
+    vec3 reflRay = reflect(rd, currNor);
+    col += rayMarch(currPos+reflRay*EPS, reflRay) * KR;
+  }
+  #endif
+  
+  return col;
 }
 
 ////////////////////////////////////////////////////////////
@@ -469,5 +504,5 @@ void main(void) {
   vec3 rd = normalize(ro-uCamPos);
   
   // rendering
-  gl_FragColor = vec4(rayMarch(ro, rd), 1.0);
+  gl_FragColor = vec4(initRayMarch(ro, rd), 1.0);
 }
