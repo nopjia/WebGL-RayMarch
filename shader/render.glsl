@@ -2,7 +2,7 @@
 precision highp float;
 #endif
 
-/* CONSTANTS */
+/* NUMERICAL CONSTANTS */
 #define EPS       0.001
 #define EPS1      0.01
 #define PI        3.14159265
@@ -10,8 +10,6 @@ precision highp float;
 #define QUARTPI   0.78539816
 #define ROOTTHREE 0.57735027
 #define HUGEVAL   1e20
-
-#define MAX_STEPS 64
 
 /* GENERAL FUNCS */
 // source: inigo quilez
@@ -167,28 +165,32 @@ uniform float uAspect;
 uniform float uTime;
 uniform vec3 uLightP;
 
-#define FOGCOLOR  vec3(0.6, 0.6, 0.7)
-#define MATERIAL0 vec3(0.5)
-#define MATERIAL1 vec3(0.9, 0.7, 0.5)
-#define MATERIAL2 vec3(0.3, 0.5, 1.0)
-
 /* PROGRAM CONSTANTS */
-const float c_Bounds = 15.0;
+
+#define MAX_STEPS 64
+
+const float c_fBounds = 15.0;
+const float c_fSmooth = 0.75;
+
+const vec3 c_vFogColor = vec3(0.6, 0.6, 0.7);
+const vec3 c_vMaterial0 = vec3(0.5);
+const vec3 c_vMaterial1 = vec3(0.9, 0.7, 0.5);
+const vec3 c_vMaterial2 = vec3(0.3, 0.5, 1.0);
 
 /* GLOBAL VARS */
 float gMin = 0.0;
 float gMax = HUGEVAL;
 
 // ray tracing globals
-vec3 currCol = MATERIAL0;
+vec3 currCol = c_vMaterial0;
 float currSSS = 1.0;
 bool currHit = false;
 vec3 currPos, currNor;
 
 float getDist(in vec3 p) {
   // wrapping xz plane
-  p.x = mod(p.x,4.0)-2.0;
-  p.z = mod(p.z,4.0)-2.0;
+  //p.x = mod(p.x,4.0)-2.0;
+  //p.z = mod(p.z,4.0)-2.0;
 
   float d0, d1;
   
@@ -206,18 +208,18 @@ float getDist(in vec3 p) {
   //vec3 p1 = rotateY*rotateX*p;
   
   //d0 = sdKnot(p/2.0, uTime)*2.0;
-  //d0 = sdQuaternion(p/2.0)*2.0;
-  
+  //d0 = sdQuaternion(p/2.0)*2.0;  
   //d0 = sdMenger(p1/2.0)*2.0;
   
-  d0 = udRoundBox(p, vec3(1.0), 0.2);
+  //d0 = sdBox(p, vec3(1.0));
+  //d0 = udRoundBox(p1, vec3(1.0), 0.2);
   
   // twisted box
-  //float c = cos(QUARTPI*p.y);
-  //float s = sin(QUARTPI*p.y);
-  //mat2  m = mat2(c,-s,s,c);
-  //vec3  p1 = vec3(m*p.xz,p.y);  
-  //d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
+  float c = cos(QUARTPI*p.y);
+  float s = sin(QUARTPI*p.y);
+  mat2  m = mat2(c,-s,s,c);
+  vec3  p1 = vec3(m*p.xz,p.y);  
+  d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
   
   // ushape box
   //d0 = udBox(p1,vec3(1.0, 2.0, 2.0));
@@ -228,11 +230,11 @@ float getDist(in vec3 p) {
   d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
   if (d1<d0) {
     d0 = d1;
-    currCol = MATERIAL0;
+    currCol = c_vMaterial0;
     currSSS = 0.0;
   }
   else {
-    currCol = MATERIAL2;
+    currCol = c_vMaterial2;
     currSSS = 1.0;
   }
   
@@ -256,7 +258,7 @@ vec3 getNormal(in vec3 pos) {
 
 bool intersectBounds (in vec3 ro, in vec3 rd) {
   float B = dot(ro,rd);
-  float C = dot(ro,ro) - c_Bounds;
+  float C = dot(ro,ro) - c_fBounds;
   
   float d = B*B - C;  // discriminant
   
@@ -275,7 +277,7 @@ int intersectSteps(in vec3 ro, in vec3 rd) {
   
   for(int i=0; i<MAX_STEPS; ++i)
   {
-    float dt = getDist(ro + rd*t);
+    float dt = getDist(ro + rd*t) * c_fSmooth;
     if(dt >= EPS) {
       steps++;
     }
@@ -292,7 +294,7 @@ float intersectDist(in vec3 ro, in vec3 rd) {
   
   for(int i=0; i<MAX_STEPS; ++i)
   {
-    float dt = getDist(ro + rd*t);
+    float dt = getDist(ro + rd*t) * c_fSmooth;
     
     if(dt < EPS) {
       dist = t;
@@ -305,7 +307,7 @@ float intersectDist(in vec3 ro, in vec3 rd) {
       break;
   }
   
-  return dist;
+  return dist;  
 }
 
 // source: the.savage@hotmail.co.uk
@@ -389,9 +391,9 @@ float getSoftShadows (in vec3 pos) {
 //#define RENDER_STEPS
 
 #define DIFFUSE
-#define REFLECTION
+//#define REFLECTION
 //#define OCCLUSION
-//#define SUBSURFACE
+#define SUBSURFACE
 #define SOFTSHADOWS
 //#define FOG
 
@@ -451,7 +453,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       #ifdef FOG
       // Add Fog
       float fogAmount = 1.0-exp(-0.02*t);
-      //col = mix(col, FOGCOLOR, fogAmount);
+      //col = mix(col, c_vFogColor, fogAmount);
       col *= 1.0-fogAmount;
       #endif
       
@@ -474,7 +476,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
   return vec3(0.0);
 }
 
-vec3 initRayMarch (in vec3 ro, in vec3 rd) {
+vec3 render (in vec3 ro, in vec3 rd) {
   
   vec3 col = rayMarch(ro, rd) * (1.0-KR);
   
@@ -504,5 +506,5 @@ void main(void) {
   vec3 rd = normalize(ro-uCamPos);
   
   // rendering
-  gl_FragColor = vec4(initRayMarch(ro, rd), 1.0);
+  gl_FragColor = vec4(render(ro, rd), 1.0);
 }
