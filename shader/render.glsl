@@ -9,7 +9,7 @@ precision highp float;
 #define HALFPI    1.57079633
 #define QUARTPI   0.78539816
 #define ROOTTHREE 0.57735027
-#define HUGE_VAL  1e20
+#define HUGEVAL   1e20
 
 #define MAX_STEPS 64
 
@@ -113,7 +113,7 @@ float sdKnot(vec3 p, float time)
   float r=length(p.xz);
   float ang=atan(p.z,p.x);
   float y=p.y;
-  float d=HUGE_VAL;
+  float d=HUGEVAL;
 
   for(int n=0; n<ITERATIONS; n++) {
 
@@ -176,8 +176,8 @@ uniform vec3 uLightP;
 const float c_Bounds = 15.0;
 
 /* GLOBAL VARS */
-float gMin = HUGE_VAL;
-float gMax = -HUGE_VAL;
+float gMin = 0.0;
+float gMax = HUGEVAL;
 
 vec3 currCol = MATERIAL0;
 float currSSS = 1.0;
@@ -190,27 +190,28 @@ float getDist(in vec3 p) {
   float d0, d1;
   
   // rotation matrix
-  //mat3 rotateY = mat3(
-  //  cos(uTime),   0.0,  sin(uTime),
-  //  0.0,          1.0,  0.0,       
-  //  -sin(uTime),  0.0,  cos(uTime)
-  //);
-  //mat3 rotateX = mat3(
-  //  1.0, 0.0, 0.0,
-  //  0.0, cos(uTime), sin(uTime), 
-  //  0.0, -sin(uTime), cos(uTime)
-  //);
-  //vec3 p1 = rotateY*rotateX*p;
+  mat3 rotateY = mat3(
+    cos(uTime),   0.0,  sin(uTime),
+    0.0,          1.0,  0.0,       
+    -sin(uTime),  0.0,  cos(uTime)
+  );
+  mat3 rotateX = mat3(
+    1.0, 0.0, 0.0,
+    0.0, cos(uTime), sin(uTime), 
+    0.0, -sin(uTime), cos(uTime)
+  );
+  vec3 p1 = rotateY*rotateX*p;
   
   //d0 = sdKnot(p/2.0, uTime)*2.0;
-  d0 = sdQuaternion(p/2.0)*2.0;
+  //d0 = sdQuaternion(p/2.0)*2.0;
+  
+  d0 = sdMenger(p1/2.0)*2.0;
   
   // twisted box
   //float c = cos(QUARTPI*p.y);
   //float s = sin(QUARTPI*p.y);
   //mat2  m = mat2(c,-s,s,c);
-  //vec3  p1 = vec3(m*p.xz,p.y);
-  //
+  //vec3  p1 = vec3(m*p.xz,p.y);  
   //d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
   
   // ushape box
@@ -380,9 +381,10 @@ float getSoftShadows (in vec3 pos) {
 
 //#define RENDER_DIST
 //#define RENDER_STEPS
+#define DIFFUSE
 //#define OCCLUSION
 //#define SUBSURFACE
-//#define SOFTSHADOWS
+#define SOFTSHADOWS
 //#define FOG
 
 #define KA      0.1
@@ -408,11 +410,14 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       
       vec3 pos = ro + rd*t;
       vec3 nor = getNormal(pos-rd*EPS);
-      vec3 toLight = normalize(uLightP-pos);
+      vec3 col = vec3(1.0);
       
+      #ifdef DIFFUSE
       // diffuse lighting
-      vec3 col = currCol * (KA + KD*max(dot(toLight,nor),0.0));
+      vec3 toLight = normalize(uLightP-pos);
+      col = currCol * (KA + KD*max(dot(toLight,nor),0.0));
       //vec3 col = vec3(1.0);
+      #endif
       
       #ifdef OCCLUSION
       // Ambient Occlusion
