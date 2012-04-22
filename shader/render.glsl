@@ -16,6 +16,10 @@ precision highp float;
 float maxcomp( in vec3 p ) {
   return max(p.x,max(p.y,p.z));
 }
+// source: http://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+float rand(in vec2 seed) {
+  return fract(sin(dot(seed.xy,vec2(12.9898,78.233))) * 43758.5453);
+}
 
 /* DISTANCE FUNCS */
 // source: http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
@@ -169,6 +173,7 @@ uniform vec3 uLightP;
 /* PROGRAM CONSTANTS */
 const float c_fBounds = 15.0;
 const float c_fSmooth = 0.70;
+const float c_fDither = 0.001;
 
 const vec3 c_vFogColor = vec3(0.6, 0.6, 0.7);
 const vec3 c_vMaterial0 = vec3(0.5);
@@ -427,6 +432,7 @@ float getSSS (in vec3 pos, in vec3 look) {
 //#define FX_SUBSURFACE
 //#define FX_SHADOW
 //#define FX_FOG
+//#define FX_DITHER
 
 #define KA  0.1
 #define KD  0.9
@@ -444,8 +450,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
     #else
     
     float t = intersectDist(ro, rd);
-    
-    
+        
     if (t>0.0) {      
       #ifdef RENDER_DIST
       const float maxDist = 20.0;
@@ -487,8 +492,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       float fogAmount = exp(-0.05*t);
       col *= fogAmount;
       #endif
-      
-      
+            
       currHit = true;
       currPos = pos;
       currNor = nor;
@@ -508,7 +512,6 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
 }
 
 vec3 render (in vec3 ro, in vec3 rd) {
-  
   vec3 col = rayMarch(ro, rd);
   
   #ifdef FX_REFLECTION
@@ -525,8 +528,7 @@ vec3 render (in vec3 ro, in vec3 rd) {
 //  MAIN
 ////////////////////////////////////////////////////////////
 
-void main(void) {
-  
+void main(void) {  
   /* CAMERA RAY */
   vec3 C = normalize(uCamCenter-uCamPos);
   vec3 A = normalize(cross(C,uCamUp));
@@ -535,7 +537,18 @@ void main(void) {
   // scale A and B by root3/3 : fov = 30 degrees
   vec3 ro = uCamPos+C + (2.0*vUv.x-1.0)*ROOTTHREE*A + (2.0*vUv.y-1.0)*ROOTTHREE*B;
   vec3 rd = normalize(ro-uCamPos);
+    
+  #ifdef FX_DITHER
+  // dithered
+  float t = intersectDist(ro, rd);
+  vec2 uv = vUv;
+  float dither = t*t*c_fDither;
+  uv.x += rand(vUv+vec2(.12, .32))*dither - dither/2.0;
+  uv.y += rand(vUv+vec2(.42, .52))*dither - dither/2.0;
+  ro = uCamPos+C + (2.0*uv.x-1.0)*ROOTTHREE*A + (2.0*uv.y-1.0)*ROOTTHREE*B;
+  #endif
   
   // rendering
-  gl_FragColor = vec4(render(ro, rd), 1.0);
+  gl_FragColor.a = 1.0;
+  gl_FragColor.rgb = render(ro, rd);
 }
