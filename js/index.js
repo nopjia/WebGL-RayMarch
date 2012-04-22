@@ -11,7 +11,7 @@ var sWidth, sHeight;
 var gRenderer, gStats;
 var gCamera, gScene, gControls, gViewQuad;
 var gAspect;
-var dt = 0.01;
+var dt = 0.02;
 
 var lambert1 = new THREE.MeshLambertMaterial({color: 0xCC0000});
 
@@ -169,31 +169,21 @@ function initTHREE() {
 }
 
 function recompileShader() {    
-  var addString = "#define MAX_STEPS "+$("#menu select[name=maxsteps]").val()+"\n";
+  var addString =
+    "#define MAX_STEPS " + $("#menu select[name=maxsteps]").val() + "\n";
   
-  // render options
-  var renderMode = $("#menu input[type=radio]:checked").val();
-  switch (renderMode) {
-    case "dist":
-      addString += "#define RENDER_DIST\n";
-      break;
-    case "steps":
-      addString += "#define RENDER_STEPS\n";
-      break;
-  }
+  // render mode
+  var renderMode = $("#submenu-render input[type=radio]:checked").val().toUpperCase();
+  addString += "#define RENDER_" + renderMode + "\n";
+  
+  // obj mode
+  var sceneObj = $("#submenu-obj input[type=radio]:checked").val().toUpperCase();
+  addString += "#define DE_" + sceneObj + "\n";
   
   // checkbox options
   $("#menu input[type=checkbox]:checked").each( function() {
-    switch (this.name) {
-      case "bounds": addString += "#define CHECK_BOUNDS\n"; break;
-      
-      case "diff":  addString += "#define DIFFUSE\n"; break;
-      case "refl":  addString += "#define REFLECTION\n"; break;
-      case "ss":    addString += "#define SOFTSHADOWS\n"; break;
-      case "ao":    addString += "#define OCCLUSION\n"; break;
-      case "sss":   addString += "#define SUBSURFACE\n"; break;
-      case "fog":   addString += "#define FOG\n"; break;
-    }
+    var optionString = this.name.toUpperCase();
+    addString += "#define " + optionString + "\n";
   });
   
   console.log("recompile shader:\n"+addString);

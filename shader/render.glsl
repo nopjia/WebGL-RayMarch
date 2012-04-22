@@ -185,13 +185,28 @@ float currSSS = 1.0;
 bool currHit = false;
 vec3 currPos, currNor;
 
-float getDist(in vec3 p) {
-  // wrapping xz plane
-  p.x = mod(p.x,4.0)-2.0;
-  p.z = mod(p.z,4.0)-2.0;
+//#define DE_WARP
+//#define DE_ROTATE
+//#define DE_TWIST
+//#define DE_GROUND
 
-  float d0, d1;
+//#define DE_BOX
+//#define DE_ROUNDBOX
+//#define DE_USHAPE
+//#define DE_MENGER
+//#define DE_KNOT
+//#define DE_QUATERNION
+
+float getDist(in vec3 p) {
+  #ifdef DE_WARP
+  // warpping xz plane
+  p.x = mod(p.x,5.0)-2.5;
+  p.z = mod(p.z,5.0)-2.5;
+  #endif
   
+  vec3 p1 = p;
+  
+  #ifdef DE_ROTATE
   // rotation matrix
   mat3 rotateY = mat3(
     cos(uTime),   0.0,  sin(uTime),
@@ -203,27 +218,58 @@ float getDist(in vec3 p) {
     0.0, cos(uTime), sin(uTime), 
     0.0, -sin(uTime), cos(uTime)
   );
-  vec3 p1 = rotateY*rotateX*p;
+  p1 = rotateY*rotateX*p;
+  #endif
   
-  //d0 = sdKnot(p/2.0, uTime)*2.0;
-  //d0 = sdQuaternion(p/2.0)*2.0;  
-  //d0 = sdMenger(p1/2.0)*2.0;
+  #ifdef DE_TWIST
+  // twist
+  float twist = sin(2.0*uTime);
+  float c = cos(twist*p1.y);
+  float s = sin(twist*p1.y);
+  mat2  m = mat2(c,-s,s,c);
+  p1 = vec3(m*p1.xz,p1.y);
+  #endif
   
-  //d0 = sdBox(p, vec3(1.0));
+  /* SCENE CONSTRUCTION */
+
+  float d0 = HUGEVAL;
+  float d1 = HUGEVAL;
+  
+  #ifdef DE_KNOT
+  d0 = sdKnot(p1/2.0, 2.0*uTime)*2.0;
+  #endif
+  
+  #ifdef DE_QUATERNION
+  d0 = sdQuaternion(p1/2.0)*2.0;
+  #endif
+  
+  #ifdef DE_MENGER
+  d0 = sdMenger(p1/2.0)*2.0;
+  #endif
+  
+  #ifdef DE_BOX
+  d0 = sdBox(p1, vec3(1.0));
+  #endif
+  
+  #ifdef DE_ROUNDBOX
   d0 = udRoundBox(p1, vec3(1.0), 0.2);
+  #endif
   
-  // twisted box
-  //float c = cos(QUARTPI*p.y);
-  //float s = sin(QUARTPI*p.y);
-  //mat2  m = mat2(c,-s,s,c);
-  //vec3  p1 = vec3(m*p.xz,p.y);  
-  //d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
-  
+  #ifdef DE_USHAPE
   // ushape box
-  //d0 = udBox(p1,vec3(1.0, 2.0, 2.0));
-  //d1 = sdSphere(p-vec3(0.0, 1.5, 0.0), 1.5);
-  //d0 = opS(d1, d0);
+  d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
+  d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
+  d0 = opS(d1, d0);
+  #endif  
   
+  //// twisted box
+  //float c = cos(QUARTPI*p1.y);
+  //float s = sin(QUARTPI*p1.y);
+  //mat2  m = mat2(c,-s,s,c);
+  //vec3  q = vec3(m*p.xz,p1.y);
+  //d0 = sdBox(q,vec3(1.0, 2.0, 2.0));
+    
+  #ifdef DE_GROUND
   // ground plane
   d1 = sdPlane(p+vec3(0.0,3.0,0.0), vec4(0.0,1.0,0.0,0.0));
   if (d1<d0) {
@@ -235,10 +281,11 @@ float getDist(in vec3 p) {
     currCol = c_vMaterial2;
     currSSS = 1.0;
   }
-    
+  #else
   // hack fix error wtf
   d1 = dot(p,p);
   d0 = d1 < d0 ? d1 : d0;
+  #endif
   
   return d0;
 }
@@ -309,29 +356,34 @@ float intersectDist(in vec3 ro, in vec3 rd) {
 }
 
 // source: the.savage@hotmail.co.uk
+#define SS_K  15.0
 float getShadow (in vec3 pos, in vec3 toLight) {
-  float fShadow=1.0;
-  float fLight = distance(uLightP,pos);
+  float shadow = 1.0;
+  float lightDist = distance(uLightP,pos);
 
-  float fLen=EPS*2.0;
+  float t = EPS1;
+  float dt;
 
-  for(int n=0;n<MAX_STEPS;n++)
+  for(int i=0; i<MAX_STEPS; ++i)
   {
-    if(fLen>=fLight) break;
+    dt = getDist(pos+(toLight*t)) * c_fSmooth;
+    
+    if(dt < EPS)    // stop if intersect object
+      return 0.0;
 
-    float fDist = getDist(pos+(toLight*fLen));
-    if(fDist<EPS) return 0.0;
-
-    fShadow=min(fShadow,10.0*(fDist/fLen));
-
-    fLen+=fDist;
+    shadow = min(shadow, SS_K*(dt/t));
+    
+    t += dt;
+    
+    if(t > lightDist)   // stop if reach light
+      break;
   }
-
-  return clamp(fShadow, 0.0, 1.0);
+  
+  return clamp(shadow, 0.0, 1.0);
 }
 
 #define AO_K      1.5
-#define AO_DELTA  0.15
+#define AO_DELTA  0.2
 #define AO_N      5
 float getAO (in vec3 pos, in vec3 nor) {
   float sum = 0.0;
@@ -364,36 +416,16 @@ float getSSS (in vec3 pos, in vec3 look) {
   return clamp(SSS_K*sum, 0.0, 1.0);
 }
 
-#define SS_K      0.7
-#define SS_DELTA  0.15
-#define SS_BLEND  0.8
-#define SS_N      6
-float getSoftShadows (in vec3 pos) {
-  vec3 lightv = normalize(uLightP-pos);
-  
-  float sum = 0.0;
-  float blend = SS_BLEND;
-  float delta = SS_DELTA;
-  
-  for (int i=0; i<SS_N; ++i) {
-    sum += blend * (delta - getDist(pos+lightv*delta));
-    
-    delta += SS_DELTA;
-    blend *= SS_BLEND;
-  }
-  return clamp(1.0 - SS_K*sum, 0.0, 1.0);
-}
-
 //#define CHECK_BOUNDS
 //#define RENDER_DIST
 //#define RENDER_STEPS
 
-//#define DIFFUSE
-//#define REFLECTION
-//#define OCCLUSION
-//#define SUBSURFACE
-//#define SOFTSHADOWS
-//#define FOG
+//#define FX_DIFFUSE
+//#define FX_REFLECTION
+//#define FX_OCCLUSION
+//#define FX_SUBSURFACE
+//#define FX_SHADOW
+//#define FX_FOG
 
 #define KA  0.1
 #define KD  0.9
@@ -422,34 +454,34 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       
       vec3 pos = ro + rd*t;
       vec3 nor = getNormal(pos-rd*EPS);
-      vec3 col = vec3(1.0);
       
-      #ifdef DIFFUSE
+      // save global values first before getShadow change them
+      vec3 col = currCol;      
+      float sss = currSSS;
+      
+      #ifdef FX_DIFFUSE
       // diffuse lighting
       vec3 toLight = normalize(uLightP-pos);
-      col = currCol * (KA + KD*max(dot(toLight,nor),0.0));
-      //vec3 col = vec3(1.0);
+      float shadow = 1.0; 
+      #ifdef FX_SHADOW
+      shadow = getShadow(pos, toLight);
+      #endif
+      col *= (KA + KD*max(dot(toLight,nor),0.0)*shadow);
       #endif
       
-      #ifdef OCCLUSION
+      #ifdef FX_OCCLUSION
       // Ambient Occlusion
       float ao = getAO(pos, nor);
       col *= ao;
       #endif
       
-      #ifdef SUBSURFACE
+      #ifdef FX_SUBSURFACE
       /// Subsurface Scattering
-      float sss = currSSS*getSSS(pos, rd);
+      sss *= getSSS(pos, rd);
       col *= 1.0-sss;
       #endif
-      
-      #ifdef SOFTSHADOWS
-      // Soft Shadows
-      float ss = getSoftShadows(pos);
-      col *= ss;
-      #endif
     
-      #ifdef FOG
+      #ifdef FX_FOG
       // Add Fog
       float fogAmount = 1.0-exp(-0.02*t);
       col = mix(col, c_vFogColor, fogAmount);
@@ -478,7 +510,7 @@ vec3 render (in vec3 ro, in vec3 rd) {
   
   vec3 col = rayMarch(ro, rd);
   
-  #ifdef REFLECTION
+  #ifdef FX_REFLECTION
   if (currHit) {
     vec3 reflRay = reflect(rd, currNor);
     col = col*(1.0-KR) + rayMarch(currPos+reflRay*EPS1, reflRay)*KR;

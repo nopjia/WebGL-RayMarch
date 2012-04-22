@@ -65,7 +65,6 @@ div#menu {
   right: 0px;
   
   margin: 15px;
-  padding: 10px; 
   
   background:url("../img/blackbg50.png");
   
@@ -73,12 +72,11 @@ div#menu {
   
   color: #FFF;
 }
-div#menu form label {
+div#menu .submenu label {
   display: block;
-}
-div#menu form>* {
   margin: 5px 0;
 }
-div#menu form>*:first-child {
-  margin-top: 0px;
+div#menu .submenu {
+  float: left;
+  margin: 10px;
 }
