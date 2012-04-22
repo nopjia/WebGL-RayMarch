@@ -180,7 +180,7 @@ float gMin = 0.0;
 float gMax = HUGEVAL;
 
 // ray tracing globals
-vec3 currCol = c_vMaterial0;
+vec3 currCol = c_vMaterial2;
 float currSSS = 1.0;
 bool currHit = false;
 vec3 currPos, currNor;
@@ -257,7 +257,7 @@ float getDist(in vec3 p) {
   
   #ifdef DE_USHAPE
   // ushape box
-  d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
+  d0 = sdBox(p1,vec3(2.0, 2.0, 1.0));
   d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
   d0 = opS(d1, d0);
   #endif  
@@ -278,12 +278,13 @@ float getDist(in vec3 p) {
     currSSS = 0.0;
   }
   else {
+    d0 = d0;
     currCol = c_vMaterial2;
     currSSS = 1.0;
   }
   #else
   // hack fix error wtf
-  d1 = dot(p,p);
+  d1 = p.z*p.z+HUGEVAL;
   d0 = d1 < d0 ? d1 : d0;
   #endif
   
@@ -483,8 +484,8 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
     
       #ifdef FX_FOG
       // Add Fog
-      float fogAmount = 1.0-exp(-0.02*t);
-      col = mix(col, c_vFogColor, fogAmount);
+      float fogAmount = exp(-0.05*t);
+      col *= fogAmount;
       #endif
       
       
