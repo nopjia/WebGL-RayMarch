@@ -5,9 +5,9 @@ precision highp float;
 /* NUMERICAL CONSTANTS */
 #define EPS       0.001
 #define EPS1      0.01
-#define PI        3.14159265
-#define HALFPI    1.57079633
-#define QUARTPI   0.78539816
+#define PI        3.1415926535897932
+#define HALFPI    1.5707963267948966
+#define QUARTPI   0.7853981633974483
 #define ROOTTHREE 0.57735027
 #define HUGEVAL   1e20
 

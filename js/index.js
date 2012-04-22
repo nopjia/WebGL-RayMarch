@@ -2,9 +2,9 @@
 // GLOBAL VARS
 ////////////////////////////////////////////////////////////////////////////////
 
-var EPS = 0.0001,
-    PI = 3.141592654,
-    HALF_PI = 1.570796327;
+var EPS     = 0.001,
+    PI      = 3.1415926535897932,
+    HALFPI  = 1.5707963267948966;
 
 var container;
 var sWidth, sHeight;
@@ -106,14 +106,15 @@ function initTHREE() {
   // setup WebGL renderer
   gRenderer = new THREE.WebGLRenderer();
   gRenderer.setSize(sWidth, sHeight);
-  gRenderer.setClearColorHex(0x000, 1);
+  gRenderer.setClearColorHex(0x000000, 1);
   container.append(gRenderer.domElement);
   
   // camera to render, orthogonal (fov=0)
-  gCamera  = new THREE.OrthographicCamera(-.5, .5, .5, -.5, -1, 1);
+  gCamera = new THREE.OrthographicCamera(-.5, .5, .5, -.5, -1, 1);
   
   // scene for rendering
   gScene = new THREE.Scene();
+  gScene.add(gCamera);
   
   // camera for raytracing
   gCamera2 = new THREE.PerspectiveCamera(
@@ -142,7 +143,23 @@ function initTHREE() {
     uLightP:    {type: "v3", value: gLightP}
   };
   
+  // compile shader
+  var shader = new THREE.ShaderMaterial({
+    uniforms:       gUniforms,
+    vertexShader:   $("#shader-vs").text(),
+    fragmentShader: $("#shader-fs").text()
+  });
+  
+  // setup plane in scene for rendering
+  gViewQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shader);
+  var node = new THREE.Object3D();
+  node.rotation.x = HALFPI;
+  node.add(gViewQuad);
+  gScene.add(node);
+  
   recompileShader();
+  
+  $("#loading").hide();
   
   // stats ui
   gStats = new Stats();
@@ -151,9 +168,7 @@ function initTHREE() {
   container.append( gStats.domElement );
 }
 
-function recompileShader() { 
-  $("#loading").show();
-  
+function recompileShader() {   
   var addString = "";
   
   // render options
@@ -183,21 +198,8 @@ function recompileShader() {
   
   console.log("recompile shader:\n"+addString);
   
-  // remove old quad
-  gScene.remove(gViewQuad)
-  
-  // compile shader
-  var shader = new THREE.ShaderMaterial({
-    uniforms:       gUniforms,
-    vertexShader:   $("#shader-vs").text(),
-    fragmentShader: addString + $("#shader-fs").text()
-  });
-  
-  // setup plane in scene for rendering
-  gViewQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shader);
-  gScene.add(gViewQuad);
-  
-  $("#loading").hide();
+  gViewQuad.material.fragmentShader = addString + $("#shader-fs").text();
+  gViewQuad.material.needsUpdate = true;
 }
 
 /* UPDATE */
