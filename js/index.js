@@ -76,7 +76,7 @@ function initKeyboardEvents() {
                           scrollbars=no, resizable=yes");
       console.log("output image in new window");
     }
-    else if (key == "M") {
+    else if (key == "Q") {
       $("div#menu").toggle();
     }
   

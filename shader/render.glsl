@@ -171,7 +171,7 @@ uniform vec3 uLightP;
 #define MAX_STEPS 64
 
 const float c_fBounds = 15.0;
-const float c_fSmooth = 0.75;
+const float c_fSmooth = 0.70;
 
 const vec3 c_vFogColor = vec3(0.6, 0.6, 0.7);
 const vec3 c_vMaterial0 = vec3(0.5);
@@ -190,30 +190,30 @@ vec3 currPos, currNor;
 
 float getDist(in vec3 p) {
   // wrapping xz plane
-  //p.x = mod(p.x,4.0)-2.0;
-  //p.z = mod(p.z,4.0)-2.0;
+  p.x = mod(p.x,4.0)-2.0;
+  p.z = mod(p.z,4.0)-2.0;
 
   float d0, d1;
   
   // rotation matrix
-  //mat3 rotateY = mat3(
-  //  cos(uTime),   0.0,  sin(uTime),
-  //  0.0,          1.0,  0.0,       
-  //  -sin(uTime),  0.0,  cos(uTime)
-  //);
-  //mat3 rotateX = mat3(
-  //  1.0, 0.0, 0.0,
-  //  0.0, cos(uTime), sin(uTime), 
-  //  0.0, -sin(uTime), cos(uTime)
-  //);
-  //vec3 p1 = rotateY*rotateX*p;
+  mat3 rotateY = mat3(
+    cos(uTime),   0.0,  sin(uTime),
+    0.0,          1.0,  0.0,       
+    -sin(uTime),  0.0,  cos(uTime)
+  );
+  mat3 rotateX = mat3(
+    1.0, 0.0, 0.0,
+    0.0, cos(uTime), sin(uTime), 
+    0.0, -sin(uTime), cos(uTime)
+  );
+  vec3 p1 = rotateY*rotateX*p;
   
   //d0 = sdKnot(p/2.0, uTime)*2.0;
   //d0 = sdQuaternion(p/2.0)*2.0;  
   //d0 = sdMenger(p1/2.0)*2.0;
   
-  d0 = sdBox(p, vec3(1.0));
-  //d0 = udRoundBox(p1, vec3(1.0), 0.2);
+  //d0 = sdBox(p, vec3(1.0));
+  d0 = udRoundBox(p1, vec3(1.0), 0.2);
   
   // twisted box
   //float c = cos(QUARTPI*p.y);
@@ -238,11 +238,10 @@ float getDist(in vec3 p) {
     currCol = c_vMaterial2;
     currSSS = 1.0;
   }
-  
-  
+    
   // hack fix error wtf
-  float fixd = p.z*p.z*HUGEVAL;
-  d0 = fixd < d0 ? fixd : d0;
+  d1 = dot(p,p);
+  d0 = d1 < d0 ? d1 : d0;
   
   return d0;
 }
@@ -485,7 +484,7 @@ vec3 render (in vec3 ro, in vec3 rd) {
   #ifdef REFLECTION
   if (currHit) {
     vec3 reflRay = reflect(rd, currNor);
-    col = col*(1.0-KR) + rayMarch(currPos+reflRay*EPS, reflRay)*KR;
+    col = col*(1.0-KR) + rayMarch(currPos+reflRay*EPS1, reflRay)*KR;
   }
   #endif
   
