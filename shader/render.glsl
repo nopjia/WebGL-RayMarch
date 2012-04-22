@@ -448,7 +448,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
     
     if (t>0.0) {      
       #ifdef RENDER_DIST
-      const float maxDist = 10.0;
+      const float maxDist = 20.0;
       t = min(t, maxDist);
       return vec3((maxDist-t)/maxDist);
       #else

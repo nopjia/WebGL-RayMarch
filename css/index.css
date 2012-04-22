@@ -80,3 +80,7 @@ div#menu .submenu {
   float: left;
   margin: 10px;
 }
+div#menu .submenu h2 {
+  font-weight: bold;
+  text-decoration: underline;
+}
