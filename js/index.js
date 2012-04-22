@@ -168,8 +168,8 @@ function initTHREE() {
   container.append( gStats.domElement );
 }
 
-function recompileShader() {   
-  var addString = "";
+function recompileShader() {    
+  var addString = "#define MAX_STEPS "+$("#menu select[name=maxsteps]").val()+"\n";
   
   // render options
   var renderMode = $("#menu input[type=radio]:checked").val();

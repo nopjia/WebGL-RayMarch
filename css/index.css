@@ -79,3 +79,6 @@ div#menu form label {
 div#menu form>* {
   margin: 5px 0;
 }
+div#menu form>*:first-child {
+  margin-top: 0px;
+}

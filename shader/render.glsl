@@ -167,9 +167,6 @@ uniform float uTime;
 uniform vec3 uLightP;
 
 /* PROGRAM CONSTANTS */
-
-#define MAX_STEPS 64
-
 const float c_fBounds = 15.0;
 const float c_fSmooth = 0.70;
 
