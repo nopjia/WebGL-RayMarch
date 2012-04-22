@@ -5,7 +5,7 @@ body {
   
   height:100%;
   
-  background-color:#CCC;
+  background-color:#7f7f7f;
 }
 
 a {
@@ -32,6 +32,18 @@ p {
   display: none;
 }
 
+div#loading {
+  position: absolute;
+  top: 0;
+  
+  width: 100%;
+  
+  color: #FFF;
+  z-index: 200;
+  
+  text-align: center;  
+}
+
 div#webgl-container {	
   display: block;
   
@@ -41,8 +53,6 @@ div#webgl-container {
   
   width: 100%;
   height: 100%;
-  
-  text-align: center;
   
   overflow: hidden;
   

@@ -8,8 +8,8 @@ var EPS = 0.0001,
 
 var container;
 var sWidth, sHeight;
-var gRenderer, stats;
-var gCamera, gScene, gControls;
+var gRenderer, gStats;
+var gCamera, gScene, gControls, gViewQuad;
 var gAspect;
 var dt = 0.01;
 
@@ -89,7 +89,7 @@ function initKeyboardEvents() {
 ////////////////////////////////////////////////////////////////////////////////
 
 function initScene() {
-  gLightP = new THREE.Vector3(1.0, 5.0, 3.0);
+  gLightP = new THREE.Vector3(2.0, 10.0, 5.0);
 }
 
 /* INIT GL */
@@ -142,27 +142,67 @@ function initTHREE() {
     uLightP:    {type: "v3", value: gLightP}
   };
   
+  recompileShader();
+  
+  // stats ui
+  gStats = new Stats();
+  gStats.domElement.style.position = 'absolute';
+  gStats.domElement.style.top = '0px';
+  container.append( gStats.domElement );
+}
+
+function recompileShader() { 
+  $("#loading").show();
+  
+  var addString = "";
+  
+  // render options
+  var renderMode = $("#menu input[type=radio]:checked").val();
+  switch (renderMode) {
+    case "dist":
+      addString += "#define RENDER_DIST\n";
+      break;
+    case "steps":
+      addString += "#define RENDER_STEPS\n";
+      break;
+  }
+  
+  // checkbox options
+  $("#menu input[type=checkbox]:checked").each( function() {
+    switch (this.name) {
+      case "bounds": addString += "#define CHECK_BOUNDS\n"; break;
+      
+      case "diff":  addString += "#define DIFFUSE\n"; break;
+      case "refl":  addString += "#define REFLECTION\n"; break;
+      case "ss":    addString += "#define SOFTSHADOWS\n"; break;
+      case "ao":    addString += "#define OCCLUSION\n"; break;
+      case "sss":   addString += "#define SUBSURFACE\n"; break;
+      case "fog":   addString += "#define FOG\n"; break;
+    }
+  });
+  
+  console.log("recompile shader:\n"+addString);
+  
+  // remove old quad
+  gScene.remove(gViewQuad)
+  
+  // compile shader
   var shader = new THREE.ShaderMaterial({
     uniforms:       gUniforms,
     vertexShader:   $("#shader-vs").text(),
-    fragmentShader: $("#shader-fs").text()
+    fragmentShader: addString + $("#shader-fs").text()
   });
   
   // setup plane in scene for rendering
-  var shape;
-  shape = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shader);
-  gScene.add(shape);
+  gViewQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shader);
+  gScene.add(gViewQuad);
   
-  // stats ui
-  stats = new Stats();
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.top = '0px';
-  container.append( stats.domElement );
+  $("#loading").hide();
 }
 
 /* UPDATE */
 function update() {  
-  stats.update();
+  gStats.update();
   gControls.update();
   gRenderer.render(gScene, gCamera);
   
@@ -177,7 +217,7 @@ function init() {
   initKeyboardEvents(); 
   requestAnimationFrame(update);
   
-  $("#top-message").remove();
+  $("#loading").hide();
 }
 
 /* DOC READY */

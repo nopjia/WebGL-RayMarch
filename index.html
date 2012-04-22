@@ -43,6 +43,34 @@
     
     <form>
       <label class="checkbox">
+        <input type="checkbox" name="bounds">
+        Check Bounds?
+      </label>
+      
+      <p>Render Options</p>
+      <label class="radio">
+        <input type="radio" name="render" value="col">
+        Color
+      </label>
+      <label class="radio">
+        <input type="radio" name="render" value="dist">
+        Distance
+      </label>
+      <label class="radio">
+        <input type="radio" name="render" value="steps">
+        Steps
+      </label>
+      
+      <p>Effects</p>
+      <label class="checkbox">
+        <input type="checkbox" name="diff">
+        Diffuse Shading
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="refl">
+        Reflections
+      </label>
+      <label class="checkbox">
         <input type="checkbox" name="ss">
         Soft Shadows
       </label>
@@ -58,11 +86,13 @@
         <input type="checkbox" name="fog">
         Fog
       </label>
-      <a href="#">Compile!</a>
+      <a href="javascript:recompileShader()">Compile!</a>
     </form>
   </div>
-  <div id="webgl-container">
-    <p id="top-message">Loading shader...</p>
+  <div id="loading">
+    <p>Loading shader...</p>
+  </div>
+  <div id="webgl-container">    
   </div>
 </body>
 </html>

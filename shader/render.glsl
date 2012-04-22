@@ -77,6 +77,7 @@ float opI( float d1, float d2 )
 
 /* FRACTALS */
 
+// source: http://www.iquilezles.org/www/articles/menger/menger.htm
 #define ITERATIONS 3
 float sdMenger(in vec3 p)
 {
@@ -211,15 +212,15 @@ float getDist(in vec3 p) {
   //d0 = sdQuaternion(p/2.0)*2.0;  
   //d0 = sdMenger(p1/2.0)*2.0;
   
-  //d0 = sdBox(p, vec3(1.0));
+  d0 = sdBox(p, vec3(1.0));
   //d0 = udRoundBox(p1, vec3(1.0), 0.2);
   
   // twisted box
-  float c = cos(QUARTPI*p.y);
-  float s = sin(QUARTPI*p.y);
-  mat2  m = mat2(c,-s,s,c);
-  vec3  p1 = vec3(m*p.xz,p.y);  
-  d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
+  //float c = cos(QUARTPI*p.y);
+  //float s = sin(QUARTPI*p.y);
+  //mat2  m = mat2(c,-s,s,c);
+  //vec3  p1 = vec3(m*p.xz,p.y);  
+  //d0 = sdBox(p1,vec3(1.0, 2.0, 2.0));
   
   // ushape box
   //d0 = udBox(p1,vec3(1.0, 2.0, 2.0));
@@ -238,9 +239,10 @@ float getDist(in vec3 p) {
     currSSS = 1.0;
   }
   
+  
   // hack fix error wtf
-  //d1 = sdSphere(p, 0.0);
-  //d0 = d1 < d0 ? d1 : d0;
+  float fixd = p.z*p.z*HUGEVAL;
+  d0 = fixd < d0 ? fixd : d0;
   
   return d0;
 }
@@ -307,7 +309,7 @@ float intersectDist(in vec3 ro, in vec3 rd) {
       break;
   }
   
-  return dist;  
+  return dist;
 }
 
 // source: the.savage@hotmail.co.uk
@@ -390,11 +392,11 @@ float getSoftShadows (in vec3 pos) {
 //#define RENDER_DIST
 //#define RENDER_STEPS
 
-#define DIFFUSE
+//#define DIFFUSE
 //#define REFLECTION
 //#define OCCLUSION
-#define SUBSURFACE
-#define SOFTSHADOWS
+//#define SUBSURFACE
+//#define SOFTSHADOWS
 //#define FOG
 
 #define KA  0.1
@@ -413,6 +415,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
     #else
     
     float t = intersectDist(ro, rd);
+    
     
     if (t>0.0) {      
       #ifdef RENDER_DIST
@@ -453,8 +456,7 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
       #ifdef FOG
       // Add Fog
       float fogAmount = 1.0-exp(-0.02*t);
-      //col = mix(col, c_vFogColor, fogAmount);
-      col *= 1.0-fogAmount;
+      col = mix(col, c_vFogColor, fogAmount);
       #endif
       
       
@@ -478,12 +480,12 @@ vec3 rayMarch (in vec3 ro, in vec3 rd) {
 
 vec3 render (in vec3 ro, in vec3 rd) {
   
-  vec3 col = rayMarch(ro, rd) * (1.0-KR);
+  vec3 col = rayMarch(ro, rd);
   
   #ifdef REFLECTION
   if (currHit) {
     vec3 reflRay = reflect(rd, currNor);
-    col += rayMarch(currPos+reflRay*EPS, reflRay) * KR;
+    col = col*(1.0-KR) + rayMarch(currPos+reflRay*EPS, reflRay)*KR;
   }
   #endif
   
