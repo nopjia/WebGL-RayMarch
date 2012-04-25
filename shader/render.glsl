@@ -193,6 +193,7 @@ vec3 currPos, currNor;
 //#define DE_WARP
 //#define DE_ROTATE
 //#define DE_TWIST
+//#define DE_DISPLACE
 //#define DE_GROUND
 
 //#define DE_BOX
@@ -234,7 +235,7 @@ float getDist(in vec3 p) {
   mat2  m = mat2(c,-s,s,c);
   p1 = vec3(m*p1.xz,p1.y);
   #endif
-  
+    
   /* SCENE CONSTRUCTION */
 
   float d0 = HUGEVAL;
@@ -266,6 +267,11 @@ float getDist(in vec3 p) {
   d1 = sdSphere(p1-vec3(0.0, 1.5, 0.0), 1.5);
   d0 = opS(d1, d0);
   #endif  
+  
+  #ifdef DE_DISPLACE
+  float d2 = 0.3*sin(PI*p1.x)*sin(PI*p1.y)*sin(PI*p1.z);
+  d0 += d2;
+  #endif
   
   //// twisted box
   //float c = cos(QUARTPI*p1.y);
