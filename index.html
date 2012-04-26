@@ -39,9 +39,43 @@
 </head>
 
 <body>
-  <div id="menu" class="hidden">
+  <div id="menu" class="">
     
-    <div class="submenu">
+    <div id="info">
+      <table>
+        <thead>
+          <tr>
+            <td colspan=2>
+              Welcome
+              <span style="float:right">
+                <a href="http://nopjia.blogspot.com/search/label/distance%20field">Visit Blog</a>
+              </span>
+            </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shift+Q</td>
+            <td>Show/hide menu</td>
+          </tr>
+          <tr>
+            <td>Shift+R</td>
+            <td>Reset camera</td>
+          </tr>
+          <tr>
+            <td>Shift+S</td>
+            <td>Take screenshot</td>
+          </tr>
+          <tr>
+            <td><button onclick="infoClose()">Next</a></button>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      
+    </div>
+    
+    <div class="submenu hidden">
             
       <div id="submenu-obj">
         <h2>Object</h2>
@@ -67,7 +101,7 @@
         </label>
         <label class="radio">
           <input type="radio" name="sceneobj" value="quaternion">
-          Quaternion Fractal
+          Quaternion (beta!)
         </label>
       </div>
       
@@ -94,16 +128,16 @@
           Twist Animation
         </label>
       </div>
-      <a href="javascript:recompileShader()">Compile!</a>
+      <button onclick="recompileShader()">Compile!</button>
     </div>
     
-    <div class="submenu">
+    <div class="submenu hidden">
       <p>
         Max Steps
         <select name="maxsteps">
           <option>32</option>
-          <option selected="selected">64</option>
-          <option>128</option>
+          <option>64</option>
+          <option selected="selected">128</option>
           <option>256</option>
         </select>
       </p>      

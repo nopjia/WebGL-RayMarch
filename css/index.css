@@ -9,13 +9,13 @@ body {
 }
 
 a {
-	color:#4DDBFF;
-	text-decoration:none;
-  border-bottom:1px dotted #4DDBFF;
+	color: #4DDBFF;
+	text-decoration: none;
+  border-bottom: 1px dotted #4DDBFF;
 }
 a:hover {
-	color:#99EBFF;
-  border-bottom:1px dotted #99EBFF;
+	color: #99EBFF;
+  border-bottom: 1px dotted #99EBFF;
 }
 
 p {
@@ -72,6 +72,20 @@ div#menu {
   
   color: #FFF;
 }
+
+div#menu button {
+  color: #4DDBFF;
+  border: none;
+  border-bottom: 1px dotted #4DDBFF;
+  background: none;
+  cursor: pointer;
+  padding: 0px;
+}
+div#menu button:hover {
+  color: #99EBFF;
+  border-color: #99EBFF;
+}
+
 div#menu .submenu label {
   display: block;
   margin: 5px 0;
@@ -83,4 +97,11 @@ div#menu .submenu {
 div#menu .submenu h2 {
   font-weight: bold;
   text-decoration: underline;
+}
+
+div#info table {
+  margin: 5px;
+}
+div#info td {
+  padding: 5px;
 }

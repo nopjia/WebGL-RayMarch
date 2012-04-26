@@ -212,6 +212,11 @@ function init() {
   $("#loading").hide();
 }
 
+function infoClose() {
+  $("#info").addClass("hidden");
+  $("#menu .submenu").removeClass("hidden");
+}
+
 /* DOC READY */
 $(document).ready(function() {
   // load shader strings
