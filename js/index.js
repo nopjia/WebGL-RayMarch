@@ -125,7 +125,7 @@ function initTHREE() {
   gCamera2.position.z = 10;
   
   // controls for camera
-  gControls = new THREE.TrackballControls(gCamera2);
+  gControls = new THREE.TrackballControls(gCamera2, container.get(0));
   gControls.rotateSpeed = 1.0;
   gControls.zoomSpeed = 1.2;
   gControls.panSpeed = 1.0;    
