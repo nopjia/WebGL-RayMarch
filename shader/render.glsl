@@ -537,12 +537,15 @@ vec3 render (in vec3 ro, in vec3 rd) {
 void main(void) {  
   /* CAMERA RAY */
   vec3 C = normalize(uCamCenter-uCamPos);
-  vec3 A = normalize(cross(C,uCamUp));
-  vec3 B = -1.0/uAspect*normalize(cross(A,C));
+  vec3 A = uAspect*normalize(cross(C,uCamUp));
+  vec3 B = -normalize(uCamUp);
   
   // scale A and B by root3/3 : fov = 30 degrees
-  vec3 ro = uCamPos+C + (2.0*vUv.x-1.0)*ROOTTHREE*A + (2.0*vUv.y-1.0)*ROOTTHREE*B;
-  vec3 rd = normalize(ro-uCamPos);
+  // vec3 ro = uCamPos+C + (2.0*vUv.x-1.0)*ROOTTHREE*A + (2.0*vUv.y-1.0)*ROOTTHREE*B;
+  // vec3 rd = normalize(ro-uCamPos);
+  // ro = uCamPos;
+  vec3 rd = normalize( C + (2.0*vUv.x-1.0)*ROOTTHREE*A + (2.0*vUv.y-1.0)*ROOTTHREE*B );
+  vec3 ro = uCamPos;
     
   #ifdef FX_DITHER
   // dithered
